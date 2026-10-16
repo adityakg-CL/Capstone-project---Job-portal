@@ -1,0 +1,83 @@
+/** My Referrals (employee) — the signed-in employee's own referral records. */
+function MyReferralsPanel({ navigate }: { navigate: (s: Screen, jobId?: string) => void }) {
+  const [items, setItems] = useState<ApiReferral[]>([]);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [page, setPage] = useState(1);
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const pageSize = 8;
+
+  const load = useCallback(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    api.myReferrals({ q: query || undefined, status: status || undefined, page, page_size: pageSize })
+      .then((res) => {
+        if (cancelled) return;
+        setItems(res.items);
+        setTotal(res.total);
+        setTotalPages(res.total_pages ?? Math.max(1, Math.ceil(res.total / pageSize)));
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setItems([]);
+        setTotal(0);
+        setTotalPages(1);
+        setError(err instanceof Error ? err.message : "Could not load your referrals");
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [query, status, page]);
+
+  useEffect(() => {
+    const timer = setTimeout(load, query ? 350 : 0);
+    return () => clearTimeout(timer);
+  }, [load, query]);
+
+  const bonusLabel = (bonus?: ApiReferral["bonus"]): string => {
+    if (!bonus) return "No bonus recorded";
+    if (bonus.approval_status === "approved") {
+      return bonus.amount != null ? `${bonus.currency ?? "INR"} ${bonus.amount.toLocaleString("en-IN")} approved` : "Approved";
+    }
+    if (bonus.approval_status === "rejected") return "Not approved";
+    return "Awaiting decision";
+  };
+
+  return <section className="panel table-panel">
+    <div className="table-toolbar">
+      <div className="search-box"><Icon name="search" /><input aria-label="Search my referrals" placeholder="Search by candidate name or email" value={query} onChange={(e) => { setQuery(e.target.value); setPage(1); }} /></div>
+      <select aria-label="Filter by status" value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
+        <option value="">All statuses</option>
+        <option value="pending">Pending</option>
+        <option value="eligible">Eligible</option>
+        <option value="ineligible">Ineligible</option>
+      </select>
+      <Button onClick={() => navigate("refer")}><Icon name="plus" size={17} /> Refer someone</Button>
+    </div>
+    {loading && <p style={{ padding: "0 20px" }}>Loading your referrals...</p>}
+    {!loading && error && <div style={{ padding: "0 20px" }}><p role="alert" className="error-text">{error}</p><Button variant="secondary" onClick={load}>Try again</Button></div>}
+    {!loading && !error && items.length === 0 && <div style={{ padding: 20 }}><h2>No referrals yet</h2><p>{query || status ? "No referrals match your search or filter." : "Refer a colleague and track their progress here."}</p><Button onClick={() => navigate("refer")}><Icon name="plus" size={17} /> Refer someone</Button></div>}
+    {items.length > 0 && <div className="data-table">
+      <div className="table-row table-head"><span>Candidate</span><span>Role</span><span>Referral status</span><span>Bonus status</span><span>Actions</span></div>
+      {items.map((ref) => <div className="table-row" key={ref.id}>
+        <span><strong>{ref.candidate_name}</strong><small style={{ display: "block", color: "var(--muted)" }}>{ref.candidate_email}</small></span>
+        <span>{ref.job_title ?? "General referral"}</span>
+        <span><Pill tone={statusTone(ref.status)}>{ref.status.replace(/_/g, " ")}</Pill></span>
+        <span><Pill tone={ref.bonus?.approval_status === "approved" ? "teal" : ref.bonus?.approval_status === "rejected" ? "red" : "amber"}>{bonusLabel(ref.bonus)}</Pill></span>
+        <span><Button variant="ghost" onClick={() => navigate("referral-detail", ref.id)}>View <Icon name="chevron" size={15} /></Button></span>
+      </div>)}
+    </div>}
+    <div className="table-footer">
+      <p>Showing {items.length ? `${(page - 1) * pageSize + 1}-${(page - 1) * pageSize + items.length}` : "0"} of {total}</p>
+      <div className="pagination mini">
+        <button disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>Previous</button>
+        <button className="active">{page}</button>
+        <span style={{ alignSelf: "center", fontSize: 10 }}>of {totalPages}</span>
+        <button disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>Next</button>
+      </div>
+    </div>
+  </section>;
+}

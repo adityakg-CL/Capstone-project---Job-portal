@@ -1,0 +1,22 @@
+﻿pip
+pip-26.2.1.dist-info
+__pycache__
+_virtualenv.pth
+_virtualenv.py
+python : Traceback (most recent call last):
+At line:1 char:218
++ ... ding utf8 ; python -c "import fastapi, 
+pymongo, pwdlib; print('system ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ( 
+   Traceback (most recent call last)::String  
+  ) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandEr 
+   ror
+ 
+  File "<string>", line 1, in <module>
+    import fastapi, pymongo, pwdlib; 
+print('system python ok')
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'pwdlib'

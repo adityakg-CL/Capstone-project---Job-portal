@@ -1,0 +1,6 @@
+﻿mongod_running=True
+python=C:\Users\adity\AppData\Local\Microsoft\WindowsApps\python.exe
+node=C:\Program Files\nodejs\node.exe
+npm=C:\Program Files\nodejs\npm.ps1
+node_modules=True
+venv=True

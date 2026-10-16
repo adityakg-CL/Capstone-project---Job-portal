@@ -1,0 +1,35 @@
+﻿60 function Icon({ name, size = 20 }: { name: string; size?: number }) {
+64 function Button({ children, variant = "primary", onClick, type = "butt
+68 function Brand({ compact = false }: { compact?: boolean }) {
+72 function Field({ label, placeholder, type = "text", helper, error, def
+77 function Pill({ children, tone = "neutral" }: { children: ReactNode; t
+81 function Avatar({ initials = "?", src, alt = "" }: { initials?: string
+103 function useAvatarSrc(avatar?: ApiAvatar | null, userId?: string) {
+111 function Auth({ register, onAuth }: { register: boolean; onAuth: () =>
+177 function Sidebar({ account, role, screen, navigate, open, close, logou
+200 function Topbar({ screen, account, dark, setDark, menu }: { screen: Sc
+207 function StatCard({ icon, label, value, meta, tone = "blue", loading =
+213 function Match({ value }: { value: number }) {
+217 function JobCard({ job, navigate }: { job: { title: string; team: stri
+222 function PanelState({ loading, error, empty, emptyTitle, emptyCopy }: 
+230 function timeAgo(iso?: string | null): string {
+246 function firstName(fullName: string): string {
+251 function EmployeeDashboard({ account, navigate }: { account: ApiUser; 
+309 function ManagerDashboard({ account, navigate }: { account: ApiUser; n
+369 function toCardJob(job: ApiJob) {
+384 function Jobs({ navigate }: { navigate: (s: Screen, jobId?: string) =>
+424 function JobDetail({ navigate, jobId }: { navigate: (s: Screen, jobId?
+475 function JobDetailApi({ navigate, jobId }: { navigate: (s: Screen, job
+525 function FormPage({ role, mode, navigate }: { role: Role; mode: "refer
+537 const rows = {
+541 function formatDate(iso?: string | null): string {
+548 function statusTone(status: string): string {
+564 function ApplicantsPanel({ jobId, navigate }: { jobId?: string; naviga
+655 function ResumeCard() {
+718 function ApplicationsPanel({ navigate }: { navigate: (s: Screen, jobId
+766 function DataPage({ type, jobId, navigate }: { type: "applications" | 
+776 function ReferralDetail({ manager, navigate }: { manager: boolean; nav
+781 function Planner() {
+786 function AccessPage({ code, navigate }: { code: "403" | "404"; navigat
+790 export default function App() {
+794 function Shell() {

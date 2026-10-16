@@ -1,0 +1,118 @@
+/** Tag/chip input used for skills. Value is controlled by the parent. */
+function TagInput({ label, values, onChange, placeholder }: { label: string; values: string[]; onChange: (v: string[]) => void; placeholder: string }) {
+  const [draft, setDraft] = useState("");
+  const add = () => {
+    const next = draft.trim();
+    if (!next) return;
+    if (!values.some((v) => v.toLowerCase() === next.toLowerCase())) onChange([...values, next]);
+    setDraft("");
+  };
+  return <label className="field"><span>{label}</span>
+    <div className="tag-input">
+      {values.map((tag) => <span key={tag}>{tag} <button type="button" aria-label={`Remove ${tag}`} onClick={() => onChange(values.filter((v) => v !== tag))}>×</button></span>)}
+      <input
+        value={draft}
+        placeholder={placeholder}
+        aria-label={label}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={add}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); add(); } }}
+      />
+    </div>
+    <small>Press Enter to add a skill.</small>
+  </label>;
+}
+
+const EMPLOYMENT_TYPES = ["Full-time", "Contract", "Internship"];
+
+/** Post a job — a real create form that persists through POST /jobs. */
+function PostJobForm({ navigate }: { navigate: (s: Screen) => void }) {
+  const [form, setForm] = useState({
+    title: "", team: "", location: "", employment_type: "Full-time",
+    salary_band: "", experience: "", description: "",
+  });
+  const [skills, setSkills] = useState<string[]>([]);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const set = (key: keyof typeof form) => (value: string) => setForm((prev) => ({ ...prev, [key]: value }));
+
+  const validate = () => {
+    const next: Record<string, string> = {};
+    if (form.title.trim().length < 3) next.title = "Enter a job title (3+ characters)";
+    if (form.team.trim().length < 2) next.team = "Enter the team or function";
+    if (form.location.trim().length < 2) next.location = "Enter a location or Remote";
+    if (form.description.trim().length < 20) next.description = "Describe the role in at least 20 characters";
+    if (skills.length === 0) next.skills = "Add at least one required skill";
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  };
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (busy) return;
+    if (!validate()) return;
+    setBusy(true);
+    setFormError(null);
+    try {
+      await api.createJob({
+        title: form.title.trim(),
+        team: form.team.trim(),
+        location: form.location.trim(),
+        employment_type: form.employment_type,
+        experience: form.experience.trim(),
+        salary_band: form.salary_band.trim(),
+        description: form.description.trim(),
+        skills,
+      });
+      navigate("manage-jobs");
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Could not create the job");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return <form className="form-layout" onSubmit={submit}>
+    <section className="panel form-card">
+      <div className="form-section-head"><h2>New requisition</h2><p>New jobs start as a draft and need HR approval before employees can see them.</p></div>
+      {formError && <p role="alert" className="error-text">{formError}</p>}
+      <Field label="Job title" placeholder="e.g. Senior Product Designer" value={form.title} onChange={set("title")} error={errors.title} />
+      <div className="two-cols">
+        <Field label="Team" placeholder="e.g. Product" value={form.team} onChange={set("team")} error={errors.team} />
+        <Field label="Location" placeholder="City or Remote" value={form.location} onChange={set("location")} error={errors.location} />
+      </div>
+      <div className="three-cols">
+        <label className="field"><span>Employment type</span>
+          <select value={form.employment_type} onChange={(e) => set("employment_type")(e.target.value)}>
+            {EMPLOYMENT_TYPES.map((t) => <option key={t}>{t}</option>)}
+          </select>
+        </label>
+        <Field label="Salary band" placeholder="e.g. ₹28L–₹36L" value={form.salary_band} onChange={set("salary_band")} />
+        <Field label="Experience" placeholder="e.g. 5–8 years" value={form.experience} onChange={set("experience")} />
+      </div>
+      <label className={`field ${errors.description ? "has-error" : ""}`}><span>Job description</span>
+        <textarea rows={7} placeholder="Describe the role, responsibilities, and impact…" value={form.description} onChange={(e) => set("description")(e.target.value)} />
+        {errors.description && <small className="error-text">{errors.description}</small>}
+      </label>
+      <TagInput label="Required skills" values={skills} onChange={setSkills} placeholder="Add a skill" />
+      {errors.skills && <p role="alert" className="error-text">{errors.skills}</p>}
+      <div className="form-actions">
+        <Button type="submit" disabled={busy}>{busy ? "Creating…" : "Create draft requisition"}</Button>
+        <Button variant="ghost" onClick={() => navigate("manage-jobs")}>Cancel</Button>
+      </div>
+    </section>
+    <aside className="panel summary-card">
+      <span className="company-mark">CL</span>
+      <h3>Publishing checklist</h3>
+      <ul>
+        <li><Icon name={form.title.trim().length >= 3 ? "check" : "clock"} size={16} /> Clear, inclusive title</li>
+        <li><Icon name={form.salary_band.trim() ? "check" : "clock"} size={16} /> Salary band included</li>
+        <li><Icon name={skills.length > 0 ? "check" : "clock"} size={16} /> Relevant skills added</li>
+        <li><Icon name={form.description.trim().length >= 20 ? "check" : "clock"} size={16} /> Full role description</li>
+      </ul>
+      <p>Drafts stay private until an HR admin approves and publishes them.</p>
+    </aside>
+  </form>;
+}

@@ -1,0 +1,113 @@
+const AVATAR_ACCEPT = "image/jpeg,image/png,image/webp";
+const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
+
+/** Change photo — validates, uploads to the backend, and persists across reloads. */
+function PhotoCard({ profile, onSaved }: { profile: ApiProfile; onSaved: (p: ApiProfile) => void }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const photo = useAvatarSrc(profile.avatar, profile.id);
+
+  const pick = async (file: globalThis.File | null | undefined) => {
+    if (!file) return;
+    setError(null);
+    setNotice(null);
+    // Client-side checks mirror the server rules so failures are fast and clear.
+    if (!AVATAR_ACCEPT.includes(file.type)) {
+      setError("Choose a JPEG, PNG or WebP image.");
+      return;
+    }
+    if (file.size > AVATAR_MAX_BYTES) {
+      setError("Images must be 2 MB or smaller.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await api.uploadAvatar(file);
+      onSaved(res.user);
+      setNotice("Profile photo updated.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async () => {
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      await api.deleteAvatar();
+      onSaved({ ...profile, avatar: null });
+      setNotice("Profile photo removed.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not remove the photo");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return <section className="panel form-card">
+    <div className="form-section-head"><h2>Profile photo</h2><p>JPEG, PNG or WebP up to 2 MB. Stored on the server so it persists across sessions.</p></div>
+    <div className="profile-intro">
+      <Avatar initials={initialsFor(profile.full_name, profile.email)} src={photo} alt={profile.full_name} />
+      <div><strong>{profile.full_name}</strong><p>{roleLabel(profile.role)}{profile.title ? ` · ${profile.title}` : ""}</p></div>
+      <label className="btn btn-secondary photo-picker">
+        {busy ? "Uploading…" : "Change photo"}
+        <input type="file" accept={AVATAR_ACCEPT} disabled={busy} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; void pick(f); }} />
+      </label>
+    </div>
+    {profile.avatar && <div className="form-actions"><Button variant="ghost" disabled={busy} onClick={() => void remove()}>Remove photo</Button></div>}
+    {error && <p role="alert" className="error-text">{error}</p>}
+    {notice && <div className="inline-success"><Icon name="check" size={17} /> {notice}</div>}
+  </section>;
+}
+
+/** Change password — verifies the current password server-side before updating. */
+function PasswordCard() {
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (busy) return;
+    const nextErrors: Record<string, string> = {};
+    if (!current) nextErrors.current = "Enter your current password";
+    if (next.length < 8 || !/[A-Za-z]/.test(next) || !/[0-9]/.test(next)) nextErrors.next = "Use 8+ characters with a letter and a number";
+    if (confirm !== next) nextErrors.confirm = "Passwords do not match";
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length) return;
+    setBusy(true);
+    setFormError(null);
+    setNotice(null);
+    try {
+      await api.changePassword({ current_password: current, new_password: next, confirm_password: confirm });
+      setNotice("Password updated. Use your new password next time you sign in.");
+      setCurrent("");
+      setNext("");
+      setConfirm("");
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Could not change the password");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return <section className="panel form-card password-card">
+    <div className="form-section-head"><h2>Change password</h2><p>Choose a strong password you don't use elsewhere. Changing it signs out your other sessions.</p></div>
+    <form onSubmit={submit}>
+      {formError && <p role="alert" className="error-text">{formError}</p>}
+      <Field label="Current password" type="password" value={current} onChange={setCurrent} error={errors.current} />
+      <Field label="New password" type="password" helper="Minimum 8 characters with a letter and a number" value={next} onChange={setNext} error={errors.next} />
+      <Field label="Confirm new password" type="password" value={confirm} onChange={setConfirm} error={errors.confirm} />
+      <Button type="submit" disabled={busy}>{busy ? "Updating…" : "Update password"}</Button>
+      {notice && <div className="inline-success"><Icon name="check" size={17} /> {notice}</div>}
+    </form>
+  </section>;
+}

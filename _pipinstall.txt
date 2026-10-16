@@ -1,0 +1,16 @@
+﻿Collecting pwdlib==0.2.1 (from pwdlib[argon2]==0.2.1)
+  Using cached pwdlib-0.2.1-py3-none-any.whl.metadata (4.3 kB)
+Collecting argon2-cffi<24,>=23.1.0 (from pwdlib[argon2]==0.2.1)
+  Using cached argon2_cffi-23.1.0-py3-none-any.whl.metadata (5.2 kB)
+Requirement already satisfied: argon2-cffi-bindings in C:\Users\adity\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages (from argon2-cffi<24,>=23.1.0->pwdlib[argon2]==0.2.1) (25.1.0)
+Requirement already satisfied: cffi>=2.0.0b1 in C:\Users\adity\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages (from argon2-cffi-bindings->argon2-cffi<24,>=23.1.0->pwdlib[argon2]==0.2.1) (2.0.0)
+Requirement already satisfied: pycparser in C:\Users\adity\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages (from cffi>=2.0.0b1->argon2-cffi-bindings->argon2-cffi<24,>=23.1.0->pwdlib[argon2]==0.2.1) (3.0)
+Using cached pwdlib-0.2.1-py3-none-any.whl (8.1 kB)
+Using cached argon2_cffi-23.1.0-py3-none-any.whl (15 kB)
+Installing collected packages: pwdlib, argon2-cffi
+  Attempting uninstall: argon2-cffi
+    Found existing installation: argon2-cffi 25.1.0
+    Uninstalling argon2-cffi-25.1.0:
+      Successfully uninstalled argon2-cffi-25.1.0
+
+Successfully installed argon2-cffi-23.1.0 pwdlib-0.2.1

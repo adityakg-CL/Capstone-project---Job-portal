@@ -1,0 +1,74 @@
+function ManagerDashboard({ account, navigate }: { account: ApiUser; navigate: (s: Screen) => void }) {
+  const [data, setData] = useState<ManagerDashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    api.managerDashboard()
+      .then((summary) => { if (!cancelled) setData(summary); })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setData(null);
+        setError(err instanceof Error ? err.message : "Could not load your hiring dashboard");
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => load(), [load]);
+
+  return <>
+    <section className="welcome manager-welcome"><div><span className="eyebrow">Hiring overview</span><h2>Welcome back, {firstName(account.full_name)}.</h2><p>{data ? `${data.jobs_open} open ${data.jobs_open === 1 ? "requisition" : "requisitions"} · ${data.referrals_to_review} ${data.referrals_to_review === 1 ? "referral" : "referrals"} awaiting review.` : "Loading your hiring pipeline…"}</p></div><Button onClick={() => navigate("post-job")}><Icon name="plus" size={17} /> Post a job</Button></section>
+    <div className="stats-grid">
+      <StatCard icon="jobs" label="Open jobs" value={data?.jobs_open ?? 0} meta={`${data?.jobs_total ?? 0} total requisitions`} loading={loading} />
+      <StatCard icon="file" label="Total applicants" value={data?.applications_total ?? 0} meta={`${data?.applications_to_review ?? 0} to review`} tone="teal" loading={loading} />
+      <StatCard icon="users" label="Referrals to review" value={data?.referrals_to_review ?? 0} meta={data && data.referrals_to_review > 0 ? "Needs attention" : "All reviewed"} tone="purple" loading={loading} />
+      <StatCard icon="gift" label="Bonuses to approve" value={data?.bonuses_to_approve ?? 0} meta={data && data.bonuses_to_approve > 0 ? "Awaiting decision" : "Nothing pending"} tone="red" loading={loading} />
+    </div>
+    {error && <section className="panel"><p role="alert" className="error-text">{error}</p><Button variant="secondary" onClick={load}>Try again</Button></section>}
+    <div className="content-grid">
+      <section className="panel">
+        <div className="panel-heading"><div><h2>Recent applicants</h2><p>Latest applications on your roles</p></div><Button variant="ghost" onClick={() => navigate("applicants")}>View all <Icon name="arrow" size={16} /></Button></div>
+        <div className="people-list">
+          {loading && <p>Loading applicants…</p>}
+          {!loading && !error && (data?.recent_applicants.length ?? 0) === 0 && <p>No applications have been received yet.</p>}
+          {data?.recent_applicants.map((app) => <div key={app.id}>
+            <Avatar initials={initialsFor(app.applicant?.full_name, app.applicant?.email)} />
+            <div><strong>{app.applicant?.full_name ?? "Unknown applicant"}</strong><p>{app.job_title} · {formatDate(app.created_at)}</p></div>
+            <Pill tone={statusTone(app.status)}>{app.status.replace(/_/g, " ")}</Pill>
+            <Button variant="secondary" onClick={() => navigate("applicants")}>Review</Button>
+          </div>)}
+        </div>
+      </section>
+      <aside className="panel activity">
+        <div className="panel-heading"><div><h2>Referral queue</h2><p>{data ? `${data.referrals_to_review} ${data.referrals_to_review === 1 ? "referral" : "referrals"} need review` : "Loading referrals…"}</p></div></div>
+        {loading && <p style={{ padding: "0 18px" }}>Loading referrals…</p>}
+        {!loading && !error && (data?.referral_queue.length ?? 0) === 0 && <p style={{ padding: "0 18px" }}>No referrals have been submitted yet.</p>}
+        {data?.referral_queue.map((ref) => <div className="activity-item" key={ref.id}>
+          <Avatar initials={initialsFor(ref.candidate_name)} />
+          <div><strong>{ref.candidate_name}</strong><p>{ref.job_title ?? "General referral"} · {ref.status}{ref.referrer?.full_name ? ` · referred by ${ref.referrer.full_name}` : ""}</p></div>
+          <small>{timeAgo(ref.created_at)}</small>
+        </div>)}
+        <Button variant="secondary" className="full" onClick={() => navigate("referrals")}>Review referrals</Button>
+      </aside>
+    </div>
+  </>;
+}
+
+function toCardJob(job: ApiJob) {
+  return {
+    id: job.id,
+    title: job.title,
+    team: job.team,
+    location: job.location,
+    type: job.employment_type ?? "Full-time",
+    experience: job.experience ?? "",
+    // No match percentage is invented: the project stores no ATS score, so the
+    // card renders the real publication state instead of a fabricated number.
+    match: undefined as number | undefined,
+    skills: job.skills ?? [],
+  };
+}

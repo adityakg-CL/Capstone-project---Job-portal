@@ -1,0 +1,57 @@
+﻿422 
+423 
+424 function JobDetail({ navigate, jobId }: { navigate: (s: Screen, jobId?: string) 
+425   const [job, setJob] = useState<ApiJob | null>(null);
+426   const [loading, setLoading] = useState(Boolean(jobId));
+427   const [error, setError] = useState<string | null>(null);
+428   const [coverNote, setCoverNote] = useState("");
+429   const [applyBusy, setApplyBusy] = useState(false);
+430   const [applyError, setApplyError] = useState<string | null>(null);
+431   const [application, setApplication] = useState<ApiApplication | null>(null);
+432   const [applied, setApplied] = useState(false);
+433   useEffect(() => {
+434     if (!jobId) {
+435       setJob(null);
+436       setLoading(false);
+437       return;
+438     }
+439     let cancelled = false;
+440     setLoading(true);
+441     setError(null);
+442     api.getJob(jobId).then((res) => {
+443       if (cancelled) return;
+444       setJob(res.job);
+445       setLoading(false);
+446     }).catch((err) => {
+447       if (cancelled) return;
+448       setError(err instanceof Error ? err.message : "Could not load this job");
+449       setLoading(false);
+450     });
+451     return () => { cancelled = true; };
+452   }, [jobId]);
+453   const submitApplication = async (e: FormEvent) => {
+454     e.preventDefault();
+455     if (!jobId || !job || applyBusy) return;
+456     if (coverNote.length > 5000) {
+457       setApplyError("Cover note must be 5000 characters or fewer");
+458       return;
+459     }
+460     setApplyBusy(true);
+461     setApplyError(null);
+462     try {
+463       const res = await api.applyToJob(jobId, { cover_note: coverNote.trim() });
+464       setApplication(res.application);
+465       setApplied(true);
+466     } catch (err) {
+467       setApplyError(err instanceof Error ? err.message : "Application failed");
+468     } finally {
+469       setApplyBusy(false);
+470     }
+471   };
+472   return <><button className="back-link" onClick={() => navigate("jobs")}>ΓåÉ Back
+473 }
+474 
+475 function JobDetailApi({ navigate, jobId }: { navigate: (s: Screen, jobId?: strin
+476   const [job, setJob] = useState<ApiJob | null>(null);
+477   const [loading, setLoading] = useState(true);
+478   const [error, setError] = useState<string | null>(null);

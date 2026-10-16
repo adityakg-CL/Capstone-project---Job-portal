@@ -1,0 +1,10 @@
+{
+  "description": "EduSpark is an online learning platform designed for students, instructors, and admins, offering a seamless experience to browse, enroll, and learn courses effectively.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

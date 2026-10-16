@@ -1,0 +1,9 @@
+.env
+.venv/
+__pycache__/
+.pytest_cache/
+*.py[cod]
+storage/resumes/
+verify_workflow2.state.json
+w2_server.out.log
+w2_server.err.log

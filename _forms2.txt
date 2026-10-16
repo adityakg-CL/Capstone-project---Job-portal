@@ -1,0 +1,77 @@
+/** Refer a colleague — persists through POST /referrals. */
+function ReferForm({ navigate, prefillJobId }: { navigate: (s: Screen, jobId?: string) => void; prefillJobId?: string }) {
+  const [candidateName, setCandidateName] = useState("");
+  const [candidateEmail, setCandidateEmail] = useState("");
+  const [note, setNote] = useState("");
+  const [jobId, setJobId] = useState<string>(prefillJobId ?? "");
+  const [openJobs, setOpenJobs] = useState<ApiJob[]>([]);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.listJobs({ page: 1, page_size: 50, sort: "newest" })
+      .then((res) => { if (!cancelled) setOpenJobs(res.items); })
+      .catch(() => { if (!cancelled) setOpenJobs([]); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (busy) return;
+    const next: Record<string, string> = {};
+    if (candidateName.trim().length < 2) next.candidate_name = "Enter the candidate's full name";
+    if (!/^\S+@\S+\.\S+$/.test(candidateEmail.trim())) next.candidate_email = "Enter a valid email address";
+    setErrors(next);
+    if (Object.keys(next).length) return;
+    setBusy(true);
+    setFormError(null);
+    try {
+      await api.createReferral({
+        candidate_name: candidateName.trim(),
+        candidate_email: candidateEmail.trim(),
+        job_id: jobId || null,
+        note: note.trim(),
+      });
+      setDone(candidateName.trim());
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Could not submit the referral");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (done) return <div className="success-state"><span><Icon name="check" size={32} /></span><h2>Referral submitted</h2><p>{done} is now in the hiring pipeline. Track progress from My Referrals.</p><Button onClick={() => navigate("my-referrals")}>View my referrals</Button></div>;
+
+  return <form className="form-layout" onSubmit={submit}>
+    <section className="panel form-card">
+      <div className="form-section-head"><h2>Refer a colleague</h2><p>We'll only use these details for this referral.</p></div>
+      {formError && <p role="alert" className="error-text">{formError}</p>}
+      <div className="two-cols">
+        <Field label="Colleague name" placeholder="Full name" value={candidateName} onChange={setCandidateName} error={errors.candidate_name} />
+        <Field label="Candidate email" placeholder="name@example.com" helper="Where we can reach them" value={candidateEmail} onChange={setCandidateEmail} error={errors.candidate_email} />
+      </div>
+      <label className="field"><span>Role</span>
+        <select value={jobId} onChange={(e) => setJobId(e.target.value)}>
+          <option value="">General referral (no specific role)</option>
+          {openJobs.map((job) => <option key={job.id} value={job.id}>{job.title} · {job.location}</option>)}
+        </select>
+        <small>Only published roles can be referred against.</small>
+      </label>
+      <label className="field"><span>Why are they a great fit? <small>Optional</small></span>
+        <textarea rows={5} placeholder="Share relevant context, skills, or experience…" value={note} onChange={(e) => setNote(e.target.value)} />
+      </label>
+      <div className="form-actions">
+        <Button type="submit" disabled={busy}>{busy ? "Submitting…" : "Submit referral"}</Button>
+        <Button variant="ghost" onClick={() => navigate("jobs")}>Cancel</Button>
+      </div>
+    </section>
+    <aside className="panel summary-card">
+      <span className="company-mark">CL</span>
+      <h3>How referrals work</h3>
+      <p>The hiring team reviews every referral. Bonus eligibility is decided separately by People &amp; Culture — a referral on its own does not guarantee a bonus.</p>
+    </aside>
+  </form>;
+}

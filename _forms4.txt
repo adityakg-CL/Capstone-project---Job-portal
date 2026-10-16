@@ -1,0 +1,111 @@
+/** Profile — loads, edits and persists the authenticated user's own record. */
+function ProfilePage({ account, onSaved }: { account: ApiUser; onSaved: (u: ApiUser) => void }) {
+  const [profile, setProfile] = useState<ApiProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [form, setForm] = useState({ full_name: "", phone: "", title: "", team: "", location: "" });
+  const [skills, setSkills] = useState<string[]>([]);
+
+  const load = useCallback(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    api.getProfile()
+      .then((res) => {
+        if (cancelled) return;
+        setProfile(res.user);
+        setForm({
+          full_name: res.user.full_name ?? "",
+          phone: res.user.phone ?? "",
+          title: res.user.title ?? "",
+          team: res.user.team ?? "",
+          location: res.user.location ?? "",
+        });
+        setSkills(res.user.skills ?? []);
+      })
+      .catch((err: unknown) => { if (!cancelled) setError(err instanceof Error ? err.message : "Could not load your profile"); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => load(), [load]);
+
+  // Merge a freshly-saved profile into shared session state so the header,
+  // sidebar and Profile page always agree without a reload.
+  const persist = (next: ApiProfile) => {
+    setProfile(next);
+    onSaved(next);
+  };
+
+  const save = async (e: FormEvent) => {
+    e.preventDefault();
+    if (busy || !profile) return;
+    if (form.full_name.trim().length < 2) {
+      setFormError("Enter your full name (2+ characters)");
+      return;
+    }
+    setBusy(true);
+    setFormError(null);
+    setNotice(null);
+    try {
+      const res = await api.updateProfile({
+        full_name: form.full_name.trim(),
+        phone: form.phone.trim() || null,
+        title: form.title.trim() || null,
+        team: form.team.trim() || null,
+        location: form.location.trim() || null,
+        skills,
+      });
+      persist(res.user);
+      setNotice("Profile saved.");
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Could not save your profile");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (loading) return <PanelState loading error={null} empty={false} emptyTitle="" emptyCopy="" />;
+  if (error || !profile) return <section className="panel"><h2>Profile unavailable</h2><p role="alert" className="error-text">{error ?? "Your profile could not be loaded."}</p><Button variant="secondary" onClick={load}>Try again</Button></section>;
+
+  const isEmployee = profile.role === "employee";
+
+  return <div className="form-layout profile-layout">
+    <div>
+      <form className="panel form-card" onSubmit={save} style={{ marginBottom: 20 }}>
+        <div className="form-section-head"><h2>Your details</h2><p>This information is visible to the People team. Your role is assigned by the server and cannot be changed here.</p></div>
+        {formError && <p role="alert" className="error-text">{formError}</p>}
+        <div className="two-cols">
+          <Field label="Full name" value={form.full_name} onChange={(v) => setForm({ ...form, full_name: v })} />
+          <Field label="Work email" value={profile.email} disabled helper="Contact People & Culture to change your work email" />
+        </div>
+        <div className="two-cols">
+          <Field label="Phone" placeholder="+91 98765 43210" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} />
+          <Field label="Location" placeholder="City or Remote" value={form.location} onChange={(v) => setForm({ ...form, location: v })} />
+        </div>
+        <div className="two-cols">
+          <Field label="Job title" placeholder="e.g. Hiring Manager" value={form.title} onChange={(v) => setForm({ ...form, title: v })} />
+          <Field label="Team" placeholder="e.g. People & Culture" value={form.team} onChange={(v) => setForm({ ...form, team: v })} />
+        </div>
+        {isEmployee && <TagInput label="Skills" values={skills} onChange={setSkills} placeholder="Add a skill" />}
+        <div className="role-readonly"><span>Role</span><strong>{roleLabel(profile.role)}</strong><small>Assigned by the server. Editing a profile can never change your permissions.</small></div>
+        <div className="form-actions"><Button type="submit" disabled={busy}>{busy ? "Saving…" : "Save changes"}</Button></div>
+        {notice && <div className="inline-success"><Icon name="check" size={17} /> {notice}</div>}
+      </form>
+      <PasswordCard />
+      {isEmployee && <ResumeCard />}
+    </div>
+    <div>
+      <PhotoCard profile={profile} onSaved={persist} />
+      <aside className="panel summary-card" style={{ marginTop: 20 }}>
+        <span className="company-mark">CL</span>
+        <h3>Account</h3>
+        <p>Member since {formatDate(profile.created_at)}.</p>
+        <p>Signed in as {roleLabel(profile.role)}.</p>
+      </aside>
+    </div>
+  </div>;
+}

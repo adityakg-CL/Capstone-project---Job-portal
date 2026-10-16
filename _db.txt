@@ -1,0 +1,12 @@
+﻿collections: ['interviews', 'referrals', 'business_rules', 'notifications', 'applications', 'audit_logs', 'referral_bonuses', 'users', 'jobs']
+users:
+  6ace8f40fe38ae969da11d5b Phase One Verify | phase1.verify.20261014013624@cirruslabs.io | employee | active= True | keys= ['_id', 'created_at', 'email', 'email_normalized', 'full_name', 'is_active', 'location', 'password_hash', 'role', 'skills', 'team', 'title', 'token_version', 'updated_at']
+  6ace91bcfe38ae969da11d5e Phase Two Employee | p2.emp.20261014014700@cirruslabs.io | employee | active= True | keys= ['_id', 'created_at', 'email', 'email_normalized', 'full_name', 'is_active', 'location', 'password_hash', 'role', 'skills', 'team', 'title', 'token_version', 'updated_at']
+  6ace91bcfe38ae969da11d61 Phase Two Manager | p2.mgr.20261014014700@cirruslabs.io | hiring_manager | active= True | keys= ['_id', 'created_at', 'email', 'email_normalized', 'full_name', 'is_active', 'location', 'password_hash', 'role', 'skills', 'team', 'title', 'token_version', 'updated_at']
+  6ace91d2fe38ae969da11d66 Phase Two Employee Check | p2.check.20261014014722@cirruslabs.io | employee | active= True | keys= ['_id', 'created_at', 'email', 'email_normalized', 'full_name', 'is_active', 'location', 'password_hash', 'role', 'skills', 'team', 'title', 'token_version', 'updated_at']
+  6ace91d3fe38ae969da11d69 Phase Two Admin | p2.admin.20261014014723@cirruslabs.io | hr_admin | active= True | keys= ['_id', 'created_at', 'email', 'email_normalized', 'full_name', 'is_active', 'location', 'password_hash', 'role', 'skills', 'team', 'title', 'token_version', 'updated_at']
+  6ace9204fe38ae969da11d70 Phase Two Final | p2.final.20261014014812@cirruslabs.io | employee | active= True | keys= ['_id', 'created_at', 'email', 'email_normalized', 'full_name', 'is_active', 'location', 'password_hash', 'role', 'skills', 'team', 'title', 'token_version', 'updated_at']
+jobs: 1
+apps: 0
+refs: 0
+bonuses: 0
